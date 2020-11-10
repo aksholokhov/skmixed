@@ -21,12 +21,13 @@ from skmixed.lme.trees import Tree, Forest
 # np.seterr(all='raise', invalid='raise')
 
 if __name__ == "__main__":
-    base_directory = Path("/examples/bullying")
+    base_directory = Path("/Users/aksh/Storage/repos/skmixed/examples/bullying")
     figures_folder_path = base_directory / "figures"
     backups_folder_path = base_directory / "backups"
     dataset_path = base_directory / "bullying_data.csv"
 
     data = pd.read_csv(dataset_path)
+    print(data.columns)
     col_target = "log_effect_size"
     col_se = "log_effect_size_se"
     col_group = "cohort"
@@ -82,8 +83,8 @@ if __name__ == "__main__":
     y_pred = model.predict_problem(problem)
 
     # plot solution in the original space
-    figure = plt.figure(figsize=(12, 12))
-    grid = plt.GridSpec(nrows=2, ncols=2)
+    figure = plt.figure(figsize=(12, 6))
+    grid = plt.GridSpec(nrows=1, ncols=2)
     # plot solutions
     solution_plot = figure.add_subplot(grid[0, 0])
     colors = sns.color_palette("husl", problem.num_groups)
@@ -99,23 +100,23 @@ if __name__ == "__main__":
         solution_plot.errorbar(time, y, yerr=np.sqrt(l), c=color, fmt="none")
         solution_plot.plot([0, max_time], [coef[0], coef[0] + coef[3] * max_time], c=color)
     # solution_plot.legend()
-    solution_plot.set_title(f"Solution, gamma = {model.coef_['gamma']}, beta = {model.coef_['beta']}")
+    solution_plot.set_title("Solution: " + r"$\beta$" + f" = [{model.coef_['beta'][0]:.2f}, {model.coef_['beta'][1]:.2f}], " + r"$\gamma$" + f" = [{model.coef_['gamma'][0]:.2f}]")
     solution_plot.set_xlabel("Time")
     solution_plot.set_ylabel("Target")
 
     # plot residues
-    residuals_plot = figure.add_subplot(grid[0, 1])
-    data["predictions"] = y_pred
-    data["residuals"] = (data[col_target] - data["predictions"])
-    sns.swarmplot(x="group", y="residuals", data=data, ax=residuals_plot, palette=colors)
-    residuals_plot.set_xticklabels(range(problem.num_groups))
-    residuals_plot.set_title("residuals")
-    residuals_plot.set_xlabel("groups")
+    # residuals_plot = figure.add_subplot(grid[0, 1])
+    # data["predictions"] = y_pred
+    # data["residuals"] = (data[col_target] - data["predictions"])
+    # sns.swarmplot(x="group", y="residuals", data=data, ax=residuals_plot, palette=colors)
+    # residuals_plot.set_xticklabels(range(problem.num_groups))
+    # residuals_plot.set_title("residuals")
+    # residuals_plot.set_xlabel("groups")
 
     # plot loss functions and information criteria
     oracle = LinearLMEOracle(problem)
-    demarginalized_loss_plot = figure.add_subplot(grid[1, 1])
-    loss_plot = figure.add_subplot(grid[1, 0])
+    # demarginalized_loss_plot = figure.add_subplot(grid[1, 1])
+    loss_plot = figure.add_subplot(grid[0, 1])
     # aic_plot = figure.add_subplot(grid[1, 1])
     demarginalized_losses = []
     losses = []
@@ -127,18 +128,18 @@ if __name__ == "__main__":
         current_beta = oracle.optimal_beta(current_gamma)
         losses.append(oracle.loss(current_beta, current_gamma))
         aics.append(oracle.vaida2005aic(current_beta, current_gamma))
-        demarginalized_losses.append(oracle.demarginalized_loss(current_beta, current_gamma))
+        # demarginalized_losses.append(oracle.demarginalized_loss(current_beta, current_gamma))
     loss_plot.plot(gammas, losses)
-    demarginalized_loss_plot.plot(gammas, demarginalized_losses)
+    # demarginalized_loss_plot.plot(gammas, demarginalized_losses)
 
     # aic_plot.plot(gammas, aics)
     loss_plot.set_title("Loss depending on intercept variance (gamma)")
     loss_plot.set_xlabel("Variance for intercept's RE (gamma)")
     loss_plot.set_ylabel("Loss function value")
-    demarginalized_loss_plot.set_title("Demarginalized loss depending on gamma")
-    demarginalized_loss_plot.set_xlabel("Variance for intercept's RE (gamma)")
-    demarginalized_loss_plot.set_ylabel("Loss function value")
-    # aic_plot.set_title("AIC")
+    # demarginalized_loss_plot.set_title("Demarginalized loss depending on gamma")
+    # demarginalized_loss_plot.set_xlabel("Variance for intercept's RE (gamma)")
+    # demarginalized_loss_plot.set_ylabel("Loss function value")
+    # # aic_plot.set_title("AIC")
 
     plt.savefig(figures_folder_path / f"{dataset_path.name}_intercept_only.png")
     plt.close()
@@ -150,8 +151,8 @@ if __name__ == "__main__":
     X = np.vstack([column_labels, X])
     y = data[col_target]
 
-    figure = plt.figure(figsize=(12, 30))
-    grid = plt.GridSpec(nrows=5, ncols=2)
+    figure = plt.figure(figsize=(12, 18))
+    grid = plt.GridSpec(nrows=3, ncols=2)
     problem = LinearLMEProblem.from_x_y(X, y, random_intercept=True)
     models = {}
     tbetas = np.zeros((problem.num_fixed_effects-1, problem.num_fixed_effects))
@@ -211,8 +212,8 @@ if __name__ == "__main__":
     # plot coefficients trajectory
     colors = sns.color_palette("husl", problem.num_fixed_effects)
 
-    betas_plot = figure.add_subplot(grid[0, :])
-    inclusion_betas_plot = figure.add_subplot(grid[1, :])
+    betas_plot = figure.add_subplot(grid[1, :])
+    inclusion_betas_plot = figure.add_subplot(grid[2, :])
     nnz_tbetas = np.array(range(2, len(categorical_features_columns) + 3, 1))
     beta_features_labels = []
     for i, feature in enumerate(["intercept", "time"] + categorical_features_columns):
@@ -231,12 +232,41 @@ if __name__ == "__main__":
     inclusion_betas_plot.set_yticklabels(beta_features_labels)
 
     betas_plot.legend()
-    betas_plot.set_xlabel(r"$\|\beta_0\|$: maximum number of non-zero fixed effects allowed in the model.")
+    inclusion_betas_plot.set_xlabel(r"$\|\beta\|_0$: maximum number of non-zero fixed effects allowed in the model.")
+    betas_plot.set_xlabel(r"$\|\beta\|_0$: maximum number of non-zero fixed effects allowed in the model.")
     betas_plot.set_ylabel(r"$\beta$: fixed effects")
     betas_plot.set_title(f"{dataset_path.name}: optimal coefficients for fixed effects depending on maximum non-zero coefficients allowed.")
     # plot gammas trajectory
-    gammas_plot = figure.add_subplot(grid[2, :])
-    inclusion_gammas_plot = figure.add_subplot(grid[3, :])
+
+    # plot loss function and aics
+    loss_plot = figure.add_subplot(grid[0, 0])
+    loss_plot.set_title("Loss")
+    loss_plot.plot(nnz_tbetas, losses[::-1], label="Loss (R2)")
+    loss_plot.set_xlabel(r"$\|\beta\|_0$ -- number of NNZ coefficients")
+    loss_plot.set_ylabel("Loss")
+    loss_plot.legend()
+    aics_plot = figure.add_subplot(grid[0, 1])
+    aics_plot.set_title("AIC")
+    selection_aics = np.array(selection_aics[::-1])
+    aics_plot.plot(nnz_tbetas, selection_aics, label="AIC (R2)")
+    argmin_aic = np.argmin(selection_aics)
+    aics_plot.scatter(nnz_tbetas[argmin_aic], selection_aics[argmin_aic], s=80, facecolors='none', edgecolors='r')
+    aics_plot.set_xlabel(r"$\|\beta\|_0$ -- number of NNZ coefficients")
+    aics_plot.set_ylabel("AIC")
+    aics_plot.legend()
+    aics_plot.set_xticks(nnz_tbetas)
+    loss_plot.set_xticks(nnz_tbetas)
+
+    inclusion_betas_plot.scatter([nnz_tbetas[argmin_aic]]*len(beta_features_labels), [None if tbetas[argmin_aic, i] == 0 else i for i, f in enumerate(beta_features_labels)], s=80, facecolors='none', edgecolors='r')
+
+    plt.savefig(figures_folder_path / f"{dataset_path.name}_fixed_feature_selection.png")
+
+    ## Random feature selection plot
+    figure = plt.figure(figsize=(12, 12))
+    grid = plt.GridSpec(nrows=2, ncols=2)
+
+    gammas_plot = figure.add_subplot(grid[0, :])
+    inclusion_gammas_plot = figure.add_subplot(grid[1, :])
     nnz_tgammas = np.array(range(1, len(categorical_features_columns) + 2, 1))
     gamma_features_labels = []
     for i, feature in enumerate(["intercept"] + categorical_features_columns):
@@ -260,25 +290,7 @@ if __name__ == "__main__":
     inclusion_gammas_plot.set_yticks(range(len(gamma_features_labels)))
     inclusion_gammas_plot.set_yticklabels(gamma_features_labels)
 
-    # plot loss function and aics
-    loss_plot = figure.add_subplot(grid[4, 0])
-    loss_plot.set_title("Loss")
-    loss_plot.plot(nnz_tbetas, losses[::-1], label="Loss (R2)")
-    loss_plot.set_xlabel("NNZ beta")
-    loss_plot.set_ylabel("Loss")
-    loss_plot.legend()
-    aics_plot = figure.add_subplot(grid[4, 1])
-    aics_plot.set_title("AICs")
-    selection_aics = np.array(selection_aics[::-1])
-    aics_plot.plot(nnz_tbetas, selection_aics, label="AIC (R2)")
-    argmin_aic = np.argmin(selection_aics)
-    aics_plot.scatter(nnz_tbetas[argmin_aic], selection_aics[argmin_aic], s=80, facecolors='none', edgecolors='r')
-    inclusion_betas_plot.scatter([nnz_tbetas[argmin_aic]]*len(beta_features_labels), [None if tbetas[argmin_aic, i] == 0 else i for i, f in enumerate(beta_features_labels)], s=80, facecolors='none', edgecolors='r')
     inclusion_gammas_plot.scatter([nnz_tgammas[argmin_aic]]*len(gamma_features_labels), [None if tgammas[argmin_aic, i] == 0 else i for i, f in enumerate(gamma_features_labels)], s=80, facecolors='none', edgecolors='r')
-    aics_plot.set_xlabel("NNZ beta")
-    aics_plot.set_ylabel("AIC")
-    aics_plot.legend()
-    aics_plot.set_xticks(nnz_tbetas)
-    loss_plot.set_xticks(nnz_tbetas)
-    plt.savefig(figures_folder_path / f"{dataset_path.name}_feature_selection.png")
+
+    plt.savefig(figures_folder_path / f"{dataset_path.name}_random_feature_selection.png")
     plt.close()
