@@ -20,6 +20,8 @@ from skmixed.lme.trees import Tree, Forest
 
 # np.seterr(all='raise', invalid='raise')
 
+presentation = True
+
 if __name__ == "__main__":
     base_directory = Path("/Users/aksh/Storage/repos/skmixed/examples/bullying")
     figures_folder_path = base_directory / "figures"
@@ -151,8 +153,37 @@ if __name__ == "__main__":
     X = np.vstack([column_labels, X])
     y = data[col_target]
 
-    figure = plt.figure(figsize=(12, 18))
-    grid = plt.GridSpec(nrows=3, ncols=2)
+    if presentation:
+        figure1 = plt.figure(figsize=(12, 9))
+        grid1 = plt.GridSpec(nrows=2, ncols=2)
+        loss_plot = figure1.add_subplot(grid1[0, 0])
+        aics_plot = figure1.add_subplot(grid1[0, 1])
+        inclusion_betas_plot = figure1.add_subplot(grid1[1, :])
+
+        figure2 = plt.figure(figsize=(12, 9))
+        grid2 = plt.GridSpec(nrows=2, ncols=2)
+        loss_plot_2 = figure2.add_subplot(grid2[0, 0])
+        aics_plot_2 = figure2.add_subplot(grid2[0, 1])
+        inclusion_gammas_plot = figure2.add_subplot(grid2[1, :])
+
+        figure3 = plt.figure(figsize=(12, 12))
+        grid3 = plt.GridSpec(nrows=2, ncols=2)
+        betas_plot = figure3.add_subplot(grid1[0, :])
+        gammas_plot = figure3.add_subplot(grid1[1, :])
+
+    else:
+        figure1 = plt.figure(figsize=(12, 18))
+        grid1 = plt.GridSpec(nrows=3, ncols=2)
+        loss_plot = figure.add_subplot(grid1[0, 0])
+        aics_plot = figure.add_subplot(grid1[0, 1])
+        betas_plot = figure.add_subplot(grid1[1, :])
+        inclusion_betas_plot = figure.add_subplot(grid1[2, :])
+
+        figure2 = plt.figure(figsize=(12, 12))
+        grid2 = plt.GridSpec(nrows=2, ncols=2)
+        gammas_plot = figure2.add_subplot(grid[0, :])
+        inclusion_gammas_plot = figure2.add_subplot(grid[1, :])
+
     problem = LinearLMEProblem.from_x_y(X, y, random_intercept=True)
     models = {}
     tbetas = np.zeros((problem.num_fixed_effects-1, problem.num_fixed_effects))
@@ -212,8 +243,7 @@ if __name__ == "__main__":
     # plot coefficients trajectory
     colors = sns.color_palette("husl", problem.num_fixed_effects)
 
-    betas_plot = figure.add_subplot(grid[1, :])
-    inclusion_betas_plot = figure.add_subplot(grid[2, :])
+
     nnz_tbetas = np.array(range(2, len(categorical_features_columns) + 3, 1))
     beta_features_labels = []
     for i, feature in enumerate(["intercept", "time"] + categorical_features_columns):
@@ -239,34 +269,46 @@ if __name__ == "__main__":
     # plot gammas trajectory
 
     # plot loss function and aics
-    loss_plot = figure.add_subplot(grid[0, 0])
     loss_plot.set_title("Loss")
     loss_plot.plot(nnz_tbetas, losses[::-1], label="Loss (R2)")
     loss_plot.set_xlabel(r"$\|\beta\|_0$ -- number of NNZ coefficients")
     loss_plot.set_ylabel("Loss")
     loss_plot.legend()
-    aics_plot = figure.add_subplot(grid[0, 1])
-    aics_plot.set_title("AIC")
+    loss_plot.set_xticks(nnz_tbetas)
+    if presentation:
+        loss_plot_2.set_title("Loss")
+        loss_plot_2.plot(nnz_tbetas, losses[::-1], label="Loss (R2)")
+        loss_plot_2.set_xlabel(r"$\|\beta\|_0$ -- number of NNZ coefficients")
+        loss_plot_2.set_ylabel("Loss")
+        loss_plot_2.legend()
+        loss_plot_2.set_xticks(nnz_tbetas)
+
+
     selection_aics = np.array(selection_aics[::-1])
-    aics_plot.plot(nnz_tbetas, selection_aics, label="AIC (R2)")
     argmin_aic = np.argmin(selection_aics)
+    aics_plot.plot(nnz_tbetas, selection_aics, label="AIC (R2)")
     aics_plot.scatter(nnz_tbetas[argmin_aic], selection_aics[argmin_aic], s=80, facecolors='none', edgecolors='r')
     aics_plot.set_xlabel(r"$\|\beta\|_0$ -- number of NNZ coefficients")
     aics_plot.set_ylabel("AIC")
     aics_plot.legend()
     aics_plot.set_xticks(nnz_tbetas)
-    loss_plot.set_xticks(nnz_tbetas)
+    aics_plot.set_title("AIC")
+    if presentation:
+        aics_plot_2.plot(nnz_tbetas, selection_aics, label="AIC (R2)")
+        aics_plot_2.scatter(nnz_tbetas[argmin_aic], selection_aics[argmin_aic], s=80, facecolors='none', edgecolors='r')
+        aics_plot_2.set_xlabel(r"$\|\beta\|_0$ -- number of NNZ coefficients")
+        aics_plot_2.set_ylabel("AIC")
+        aics_plot_2.legend()
+        aics_plot_2.set_xticks(nnz_tbetas)
+        aics_plot_2.set_title("AIC")
+
 
     inclusion_betas_plot.scatter([nnz_tbetas[argmin_aic]]*len(beta_features_labels), [None if tbetas[argmin_aic, i] == 0 else i for i, f in enumerate(beta_features_labels)], s=80, facecolors='none', edgecolors='r')
 
-    plt.savefig(figures_folder_path / f"{dataset_path.name}_fixed_feature_selection.png")
+    figure1.savefig(figures_folder_path / f"{dataset_path.name}_fixed_feature_selection.png")
 
     ## Random feature selection plot
-    figure = plt.figure(figsize=(12, 12))
-    grid = plt.GridSpec(nrows=2, ncols=2)
 
-    gammas_plot = figure.add_subplot(grid[0, :])
-    inclusion_gammas_plot = figure.add_subplot(grid[1, :])
     nnz_tgammas = np.array(range(1, len(categorical_features_columns) + 2, 1))
     gamma_features_labels = []
     for i, feature in enumerate(["intercept"] + categorical_features_columns):
@@ -292,5 +334,5 @@ if __name__ == "__main__":
 
     inclusion_gammas_plot.scatter([nnz_tgammas[argmin_aic]]*len(gamma_features_labels), [None if tgammas[argmin_aic, i] == 0 else i for i, f in enumerate(gamma_features_labels)], s=80, facecolors='none', edgecolors='r')
 
-    plt.savefig(figures_folder_path / f"{dataset_path.name}_random_feature_selection.png")
+    figure2.savefig(figures_folder_path / f"{dataset_path.name}_random_feature_selection.png")
     plt.close()
