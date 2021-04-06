@@ -34,6 +34,8 @@ if __name__ == "__main__":
     col_se = "log_effect_size_se"
     col_group = "cohort"
     group_to_id = {g: i for i, g in enumerate(data[col_group].unique())}
+    data["group"] = data["group"].replace(group_to_id)
+
     data["group"] = data[col_group]
     data["group"] = data["group"].replace(group_to_id)
     col_group = "group"
